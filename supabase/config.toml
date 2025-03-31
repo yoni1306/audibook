@@ -249,9 +249,21 @@ policy = "per_worker"
 inspector_port = 8083
 
 # Use these configurations to customize your Edge Function.
+[functions.text-to-speech]
+enabled = true
+verify_jwt = false
+import_map = "./functions/text-to-speech/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/text-to-speech/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/text-to-speech/*.html" ]
+
+
 # [functions.MY_FUNCTION_NAME]
 # enabled = true
-# verify_jwt = true
+# verify_jwt = false
 # import_map = "./functions/MY_FUNCTION_NAME/deno.json"
 # Uncomment to specify a custom file path to the entrypoint.
 # Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx

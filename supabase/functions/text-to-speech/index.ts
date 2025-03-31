@@ -1,16 +1,16 @@
 // Setup type definitions for built-in Supabase Runtime APIs
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { ElevenLabsClient } from "npm:elevenlabs";
+import { OpenAI } from "npm:openai";
 import * as hash from "npm:object-hash";
 
 const supabase = createClient(
-  Deno.env.get("SUPABASE_URL")!,
-  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+  Deno.env.get("APP_SUPABASE_URL")!,
+  Deno.env.get("APP_SUPABASE_SERVICE_ROLE_KEY")!,
 );
 
-const client = new ElevenLabsClient({
-  apiKey: Deno.env.get("ELEVENLABS_API_KEY"),
+const openai = new OpenAI({
+  apiKey: Deno.env.get("OPENAI_API_KEY"),
 });
 
 // Upload audio to Supabase Storage in a background task
@@ -25,6 +25,19 @@ async function uploadAudioToStorage(
     });
 
   console.log("Storage upload result", { data, error });
+}
+
+// Function to generate speech using OpenAI's audio.speech.create
+async function generateSpeech(text: string, voiceId: string) {
+  const response = await openai.audio.speech.create({
+    model: "gpt-4o-mini-tts",
+    voice: voiceId,
+    input: text,
+    instructions: "Speak in a cheerful and positive tone.",
+  });
+
+  // Return the audio stream from the response
+  return response.body;
 }
 
 Deno.serve(async (req) => {
@@ -59,21 +72,17 @@ Deno.serve(async (req) => {
   }
 
   try {
-    console.log("ElevenLabs API call");
-    const response = await client.textToSpeech.convertAsStream(voiceId, {
-      output_format: "mp3_44100_128",
-      model_id: "eleven_multilingual_v2",
-      text,
-    });
+    console.log("OpenAI API call");
+    const audioStream = await generateSpeech(text, voiceId);
 
     const stream = new ReadableStream({
       async start(controller) {
-        for await (const chunk of response) {
-          controller.enqueue(chunk);
+        for await (const chunk of audioStream) {
+          controller.enqueue(chunk)
         }
-        controller.close();
+        controller.close()
       },
-    });
+    })
 
     // Branch stream to Supabase Storage
     const [browserStream, storageStream] = stream.tee();
